@@ -63,4 +63,95 @@ export interface RouteGuardProps {
   setRemoveErrorBoundary?: React.Dispatch<React.SetStateAction<boolean>>;
   onRouteChange?: (location: string) => void;
   onRedirect?: (from: string, to: string) => void;
+  visualizer?: {
+    enabled?: boolean;
+    render?: () => React.ReactElement<RouteVisionProps, string | React.JSXElementConstructor<any>>;
+  };
 }
+
+export interface RouteVisionProps {
+  routes: RouteConfig[];
+  timingRecords: RouteTiming[];
+  setTimingRecords: React.Dispatch<React.SetStateAction<RouteTiming[]>>;
+  issues: string[]
+  setIssues: React.Dispatch<React.SetStateAction<string[]>>
+  testingMode:boolean;
+  toggleTestingMode:()=>void;
+};
+
+
+
+
+// visualizer/types.ts
+
+export type VisualRouteNode = {
+  id: string;
+  path?: string;
+  fullPath: string;
+  index?: boolean;
+  type: "private" | "public" | "neutral";
+  roles: string[];
+  inheritedRoles: string[];
+  redirectTo?: RedirectTo;
+  lazy: boolean;
+  children: VisualRouteNode[];
+};
+
+// simulationTypes.ts
+export type RouteOutcome =
+  | { type: "render" }
+  | { type: "redirect"; to: string }
+  | { type: "unauthorized" }
+  | { type: "fallback" };
+
+export interface SimulationContext {
+  label: string;
+  auth: boolean;
+  userRoles: string[];
+}
+
+export interface SimulationResult {
+  path: string;
+  context: SimulationContext;
+  outcome: RouteOutcome;
+}
+
+export type Scenario = {
+  label: string; // "Guest", "User", "Viewer", "Admin"
+  results: {
+    route: string;
+    access: "allow" | "redirect" | "deny";
+  }[];
+};
+
+
+export interface RouteTiming {
+  path: string;
+  intendedPath?: string;
+  loadTime: number;
+  redirected?: boolean;
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+export interface TrackableElementProps {
+  onMounted?: (timing: RouteTiming) => void;
+  path: string;
+  children: React.ReactNode;
+  enabled:boolean;
+}
+
+export type devWarnProps = {
+  message: string
+  disableErrorBoundary: boolean;
+}
+
+export type ValidateRouteParams = {
+  path?: string;
+  type?: "private" | "public" | "neutral";
+  redirectTo?: RedirectTo;
+  children?: RouteConfig[];
+  element?: React.ReactNode;
+  parentKey?: string;
+  index?: boolean
+};

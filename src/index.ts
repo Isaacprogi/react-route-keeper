@@ -1,3 +1,5 @@
+import "./global.css"; 
+
 export { LoadingScreen } from "./components/LoadingScreen";
 export { LandingFallback } from "./components/LandingFallback";
 export { NotFound } from "./components/NotFound";

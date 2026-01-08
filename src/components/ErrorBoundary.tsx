@@ -1,5 +1,4 @@
-import React, { Component, type ReactNode, ErrorInfo } from "react";
-// 1. Import the CSS module
+import React, {  type ReactNode,type ErrorInfo } from "react";
 import styles from "../styles/ErrorBoundary.module.css";
 
 interface ErrorBoundaryState {
@@ -8,7 +7,7 @@ interface ErrorBoundaryState {
   errorInfo: ErrorInfo | null;
 }
 
-export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+export class ErrorBoundary extends React.Component<{ children: ReactNode }, ErrorBoundaryState> {
   constructor(props: { children: ReactNode }) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
@@ -70,7 +69,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
             <section className={styles["eb-grid-details"]}>
               <div className={styles["eb-detail-item"]}>
                 <label>Environment</label>
-                <span>{process.env.NODE_ENV}</span>
+                <span>{import.meta.env.NODE_ENV}</span>
               </div>
               <div className={styles["eb-detail-item"]}>
                 <label>Component Trace</label>

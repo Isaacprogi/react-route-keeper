@@ -1,22 +1,33 @@
-import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import React, {
+  useState,
+  useEffect,
+  Suspense,
+  useCallback,
+  useMemo,
+} from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import type { RouteConfig, RouteGuardProps, RedirectTo } from "../utils/type";
 import { LoadingScreen } from "./LoadingScreen";
 import { LandingFallback } from "./LandingFallback";
 import { Unauthorized } from "./UnAuthorized";
 import { NotFound } from "./NotFound";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { devWarn, isLazyElement } from "../utils/functions";
-import { Suspense } from "react";
-import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { devWarn, getFullPath, isLazyElement } from "../utils/functions";
+import { LauncherButton } from "./LuncherButton";
+import { TrackableElement } from "./TrackableElement";
+import type { RouteTiming } from "../utils/type";
+import { validateRouteConfig } from "../utils/functions";
+import { RouteKeeperProvider } from "./context/RouteKeeperContext";
+import { useRouteKeeper } from "./context/RouteKeeperContext";
 
-console.log(
-  "%c🔥 RouteKeeper COMPONENT IS MOUNTED 🔥",
-  "color: #00f2ff; background: #141417; font-size: 10px; font-weight: bold; padding: 6px 12px; border: 1px solid #26262b; border-left: 4px solid #00f2ff; border-radius: 4px; font-family: 'JetBrains Mono', monospace;"
-);
+if (import.meta.env.NODE_ENV === "development")
+  console.log(
+    "%c🔥 RouteKeeper COMPONENT IS MOUNTED 🔥",
+    "color: #00f2ff; background: #141417; font-size: 10px; font-weight: bold; padding: 6px 12px; border: 1px solid #26262b; border-left: 4px solid #00f2ff; border-radius: 4px; font-family: 'JetBrains Mono', monospace;"
+  );
+
 export const RK: React.FC<RouteGuardProps> = ({
-  routes,
+  routes: initialRoutes,
   auth: isAuth,
   userRoles = [],
   loading,
@@ -30,20 +41,86 @@ export const RK: React.FC<RouteGuardProps> = ({
   setRemoveErrorBoundary,
   onRouteChange,
   onRedirect,
+  visualizer
 }) => {
   const auth = typeof isAuth === "string" ? Boolean(isAuth) : isAuth;
-
+  const routes = useMemo(() => initialRoutes, [initialRoutes]);
+  const { setTimingRecords, setIssues,testingMode } = useRouteKeeper();
   const location = useLocation();
 
-  React.useEffect(() => {
+
+  useEffect(() => {
     setRemoveErrorBoundary?.(disableErrorBoundary);
   }, [disableErrorBoundary]);
 
-  React.useEffect(() => {
-    if (onRouteChange) {
-      onRouteChange(location.pathname);
-    }
+  useEffect(() => {
+    onRouteChange?.(location.pathname);
   }, [location.pathname, onRouteChange]);
+
+  const onRouteRendered = useCallback(
+    (timing: RouteTiming) => {
+      const state = location.state as any;
+      const enrichedTiming: RouteTiming = {
+        ...timing,
+        intendedPath: state?.__rkIntendedPath ?? timing.path,
+        redirected: Boolean(state?.__rkRedirected),
+        timestamp: new Date().toISOString(),
+        metadata: {
+          guard: state?.__rkGuard,
+          reason: state?.__rkReason,
+        },
+      };
+      setTimingRecords((prev) => [enrichedTiming, ...prev]);
+    },
+    [location.pathname]
+  );
+
+  useEffect(() => {
+    const collectedIssues: string[] = [];
+
+    const walk = (routes: RouteConfig[], parentKey = "") => {
+      const usedPaths = new Set<string>();
+      let indexUsed = false;
+
+      for (const route of routes) {
+        if (route.index) {
+          if (indexUsed) {
+            collectedIssues.push(
+              `Duplicate index route at parentKey="${parentKey}".`
+            );
+          }
+          indexUsed = true;
+        }
+
+        if (route.path) {
+          if (usedPaths.has(route.path)) {
+            collectedIssues.push(
+              `Duplicate path "${route.path}" at parentKey="${parentKey}".`
+            );
+          }
+          usedPaths.add(route.path);
+        }
+
+        collectedIssues.push(
+          ...validateRouteConfig({
+            ...route,
+            parentKey,
+          })
+        );
+
+        if (route.children) {
+          walk(
+            route.children,
+            getFullPath({ path: route.path, index: route.index }, parentKey) ??
+              parentKey
+          );
+        }
+      }
+    };
+
+    walk(routes);
+    setIssues(collectedIssues);
+  }, [routes, disableErrorBoundary]);
 
   if (loading) return loadingScreen;
 
@@ -58,12 +135,17 @@ export const RK: React.FC<RouteGuardProps> = ({
       : "/";
 
   if (!safePublicRedirect) {
-    devWarn(
-      `publicRedirect must be a non-empty string. Received "${publicRedirect}".`
-    );
+    devWarn({
+      message: `publicRedirect must be a non-empty string. Received "${publicRedirect}".`,
+      disableErrorBoundary,
+    });
   }
 
-  const handleRedirect = (redirectTo: RedirectTo) => {
+  const handleRedirect = (
+    redirectTo: RedirectTo,
+    guard: string,
+    reason: string
+  ) => {
     const {
       pathname,
       search,
@@ -73,36 +155,29 @@ export const RK: React.FC<RouteGuardProps> = ({
       relative,
       preventScrollReset,
     } = redirectTo;
-
     const to: any = { pathname };
-
-    if (search) {
-      to.search = search.startsWith("?") ? search : `?${search}`;
-    }
-    if (hash) {
-      to.hash = hash.startsWith("#") ? hash : `#${hash}`;
-    }
-    if (state !== undefined) {
-      to.state = state;
-    }
+    if (search) to.search = search.startsWith("?") ? search : `?${search}`;
+    if (hash) to.hash = hash.startsWith("#") ? hash : `#${hash}`;
+    if (state !== undefined) to.state = state;
 
     onRedirect?.(location.pathname, pathname);
 
-    const navigateOptions: any = {};
-
-    if (replace !== undefined) {
-      navigateOptions.replace = replace;
-    }
-
-    if (relative) {
-      navigateOptions.relative = relative;
-    }
-
-    if (preventScrollReset !== undefined) {
-      navigateOptions.preventScrollReset = preventScrollReset;
-    }
-
-    return <Navigate to={to} {...navigateOptions} />;
+    return (
+      <Navigate
+        to={to}
+        replace={replace}
+        relative={relative}
+        {...(preventScrollReset !== undefined ? { preventScrollReset } : {})}
+        state={{
+          ...state,
+          __rkRedirected: true,
+          __rkFrom: location.pathname,
+          __rkIntendedPath: location.pathname,
+          __rkGuard: guard,
+          __rkReason: reason,
+        }}
+      />
+    );
   };
 
   const renderRoutes = (
@@ -111,8 +186,6 @@ export const RK: React.FC<RouteGuardProps> = ({
     inheritedType?: "private" | "public" | "neutral",
     parentRoles: string[] = []
   ): (React.ReactElement | null)[] => {
-    const usedPaths = new Set<string>();
-    let indexUsed = false;
 
     return routesArray.map(
       ({
@@ -125,162 +198,105 @@ export const RK: React.FC<RouteGuardProps> = ({
         redirectTo,
         excludeParentRole,
         ...rest
-      }: RouteConfig) => {
-        if (index) {
-          if (indexUsed) {
-            devWarn(
-              `Duplicate sibling path "${path}" at parentKey="${parentKey}".`
-            );
-            return null;
-          }
-          indexUsed = true;
-        }
+      }) => {
+        const fullPath = getFullPath({ path, index }, parentKey);
 
-        if (path) {
-          if (usedPaths.has(path)) {
-            devWarn(
-              `Duplicate sibling path "${path}" at parentKey="${parentKey}".`
+        const wrapWithTrackable = (el: React.ReactNode, fullPath: string) => {
+          {
+            if (location.pathname !== fullPath || index) {
+              return element;
+            }
+
+            return (
+              <TrackableElement
+                enabled={Boolean(visualizer?.enabled && testingMode)}
+                key={fullPath}
+                path={fullPath}
+                onMounted={onRouteRendered}
+              >
+                {el}
+              </TrackableElement>
             );
-            return null;
           }
-          usedPaths.add(path);
-        }
+        };
 
         const isLazy = isLazyElement(element);
 
-        if (element && redirectTo) {
-          devWarn(
-            `Route at path="${path}" cannot have both "element" and "redirectTo".`
-          );
-        }
-
-        if (!element && !redirectTo) {
-          devWarn(
-            `Route at path="${path}" must provide at least an "element" or "redirectTo".`
-          );
-        }
-
-        if (index && path) {
-          devWarn(`Index route must not define a "path".`);
-        }
-
-        if (type && !["private", "public", "neutral"].includes(type)) {
-          devWarn(
-            `Invalid route type "${type}" at path="${path}". Expected "private", "public", or "neutral".`
-          );
-        }
-
-        if (redirectTo && children?.length) {
-          devWarn(`Redirect route "${path}" should not have children.`);
-        }
-
-        if (
-          redirectTo !== undefined &&
-          (!redirectTo.pathname || redirectTo.pathname.trim() === "")
-        ) {
-          devWarn(`redirectTo.pathname cannot be empty.`);
-        }
-
-        if (
-          path === "/" &&
-          (type === "public" || type === "private" || type === "neutral")
-        ) {
-          devWarn(
-            `Root "/" does not need a type. It is handled differently. Please refer docs`
-          );
-        }
-        if (path && redirectTo?.pathname && path === redirectTo?.pathname) {
-          console.log(redirectTo);
-          devWarn(`redirectTo and path can't have the same route.`);
-        }
-
-        if (path === "" && (element || redirectTo?.pathname)) {
-          devWarn(
-            `A route with an element or redirect must define a valid "path".`
-          );
-        }
-
         const routeType = type || inheritedType || "public";
-        let routeElement: React.ReactNode;
 
         const effectiveRoles =
           roles && excludeParentRole
             ? roles
             : [...new Set([...(parentRoles || []), ...(roles || [])])];
-
         const hasRoleAccess =
           effectiveRoles.length === 0 ||
           userRoles.some((role) => effectiveRoles.includes(role));
 
+        let routeElement: React.ReactNode;
+
         if (redirectTo) {
-          routeElement = handleRedirect(redirectTo);
+          routeElement = handleRedirect(
+            redirectTo,
+            "RouteKeeper",
+            "Redirect configured"
+          );
         } else if (path === "/") {
-          routeElement = auth ? element : privateFallback;
+          routeElement = auth
+            ? wrapWithTrackable(element, fullPath!)
+            : wrapWithTrackable(privateFallback, fullPath!);
         } else {
-          /* -----------------------------
-           * 2️⃣ Guarded render routes
-           * ----------------------------- */
-          // NEW: handle lazy routes
-          if (isLazy) {
-            routeElement = (
+          let wrappedElement = wrapWithTrackable(element, fullPath!);
+          if (isLazy)
+            wrappedElement = (
               <Suspense fallback={rest.fallback ?? loadingScreen}>
-                {element}
+                {wrappedElement}
               </Suspense>
             );
-          } else {
-            switch (routeType) {
-              case "private": {
-                routeElement = !auth ? (
-                  <Navigate to={safePrivateRedirect} replace />
-                ) : !hasRoleAccess ? (
-                  unAuthorized
-                ) : (
-                  element
-                );
-                break;
-              }
 
-              case "public": {
-                routeElement = auth ? (
-                  <Navigate to={safePublicRedirect} replace />
-                ) : (
-                  element
-                );
-                break;
-              }
-
-              case "neutral": {
-                routeElement = element;
-                break;
-              }
-
-              default:
-                routeElement = null;
-            }
+          switch (routeType) {
+            case "private":
+              routeElement = !auth
+                ? handleRedirect(
+                    { pathname: safePrivateRedirect, replace: true },
+                    "RouteKeeper",
+                    "User not authenticated"
+                  )
+                : !hasRoleAccess
+                ? wrapWithTrackable(unAuthorized, fullPath!)
+                : wrappedElement;
+              break;
+            case "public":
+              routeElement = auth
+                ? handleRedirect(
+                    { pathname: safePublicRedirect, replace: true },
+                    "RouteKeeper",
+                    "User already authenticated"
+                  )
+                : wrappedElement;
+              break;
+            case "neutral":
+              routeElement = wrappedElement;
+              break;
+            default:
+              routeElement = null;
           }
         }
 
         const childRoutes = children
-          ? renderRoutes(
-              children,
-              parentKey + (path || "index"),
-              routeType,
-              effectiveRoles
-            )
+          ? renderRoutes(children, fullPath, routeType, effectiveRoles)
           : undefined;
 
-        if (index) {
+        if (index)
           return (
             <Route
-              key={parentKey + "index"}
+              key={fullPath + "index"}
               index
-              element={routeElement}
+              element={wrapWithTrackable(element, parentKey || "index")}
               {...rest}
             />
           );
-        }
 
-        if (children && children.length > 0) {
+        if (children && children.length > 0)
           return (
             <Route
               key={parentKey + path}
@@ -291,39 +307,52 @@ export const RK: React.FC<RouteGuardProps> = ({
               {childRoutes}
             </Route>
           );
-        } else {
-          // Leaf route — no children, just render the element directly
-          return (
-            <Route
-              key={parentKey + path}
-              path={path}
-              element={routeElement}
-              {...rest}
-            />
-          );
-        }
+
+        return (
+          <Route
+            key={parentKey + path}
+            path={path}
+            element={routeElement}
+            {...rest}
+          />
+        );
       }
     );
   };
 
   return (
-    <Routes>
-      {renderRoutes(routes)}
-      <Route path="*" element={notFound} />
-    </Routes>
+    <>
+      <Routes>
+        {renderRoutes(routes)}
+        <Route path="*" element={notFound} />
+      </Routes>
+    </>
   );
 };
 
 export const RouteKeeper: React.FC<RouteGuardProps> = (props) => {
   const [removeErrorBoundary, setRemoveErrorBoundary] = useState(false);
-
-  if (removeErrorBoundary) {
-    return <RK {...props} setRemoveErrorBoundary={setRemoveErrorBoundary} />;
-  }
+ 
 
   return (
-    <ErrorBoundary>
-      <RK {...props} setRemoveErrorBoundary={setRemoveErrorBoundary} />
-    </ErrorBoundary>
+    <RouteKeeperProvider
+    >
+      <>
+       
+        {props.visualizer?.enabled && props.visualizer.render && import.meta.env.DEV && (
+          <LauncherButton
+            plugEditor={props.visualizer.render}
+          />
+        )}
+
+        {removeErrorBoundary ? (
+          <RK {...props} setRemoveErrorBoundary={setRemoveErrorBoundary} />
+        ) : (
+          <ErrorBoundary>
+            <RK {...props} setRemoveErrorBoundary={setRemoveErrorBoundary} />
+          </ErrorBoundary>
+        )}
+      </>
+    </RouteKeeperProvider>
   );
 };

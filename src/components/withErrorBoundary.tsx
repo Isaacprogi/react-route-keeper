@@ -1,7 +1,7 @@
-import React, { useState, ComponentType, ReactNode } from "react";
+import React, { useState, type ComponentType} from "react";
 import { ErrorBoundary } from "./ErrorBoundary";
 
-type WithRemoveErrorBoundaryProp = {
+export type WithRemoveErrorBoundaryProp = {
   setRemoveErrorBoundary: React.Dispatch<React.SetStateAction<boolean>>;
 };
 

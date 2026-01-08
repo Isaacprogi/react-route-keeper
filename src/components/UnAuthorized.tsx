@@ -1,11 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
-// 1. Import the styles object
 import styles from "../styles/UnAuthorized.module.css";
 
 export const Unauthorized: React.FC = () => {
   return (
-    // 2. Map class names using bracket notation
     <div className={styles["unauthorized-container"]}>
       <h1 className={styles["unauthorized-title"]}>401</h1>
 

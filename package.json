@@ -1,16 +1,16 @@
 {
-  "name": "react-route-keeper",
+  "name": "routekeeper",
   "version": "2.0.2",
   "description": "A React RouteGuard component for role-based and protected routing.",
   "author": "Isaac Anasonye",
   "license": "MIT",
-  "homepage": "https://github.com/Isaacprogi/react-route-keeper#readme",
+  "homepage": "https://github.com/Isaacprogi/routekeeper-react#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Isaacprogi/react-route-keeper.git"
+    "url": "https://github.com/Isaacprogi/routekeeper-react.git"
   },
   "bugs": {
-    "url": "https://github.com/Isaacprogi/react-route-keeper/issues"
+    "url": "https://github.com/Isaacprogi/routekeeper-react/issues"
   },
   "keywords": [
     "react",
@@ -47,13 +47,18 @@
     "react-router-dom": ">=6"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/d3": "^7.4.3",
     "@types/node": "^25.0.3",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.11.0",
+    "tailwindcss": "^4.1.18",
     "terser": "^5.44.1",
     "typescript": "^5.0.0",
     "vite": "^4.4.0",
@@ -63,6 +68,9 @@
     "node": ">=16"
   },
   "dependencies": {
+    "d3": "^7.9.0",
+    "react-d3-tree": "^3.6.6",
+    "react-icons": "^5.5.0",
     "vite-plugin-lib-inject-css": "^2.2.2"
   }
 }

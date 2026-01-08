@@ -1,11 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
-// 1. Import the styles object
 import styles from "../styles/NotFound.module.css";
 
 export const NotFound: React.FC = () => {
   return (
-    // 2. Map class names using bracket notation for hyphenated keys
     <div className={styles["not-found-container"]}>
       <h1 className={styles["not-found-title"]}>404</h1>
 

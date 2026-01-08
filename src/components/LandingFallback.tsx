@@ -1,6 +1,4 @@
-// LandingFallback.tsx
 import React from "react";
-import { Link } from "react-router-dom";
 import styles from "../styles/LandingFallback.module.css";
 
 export const LandingFallback: React.FC = () => {

@@ -1,4 +1,4 @@
-import { RouteConfig } from "../utils/type";
+import type { RouteConfig } from "../utils/type";
 
 export function defineRoutes<T extends RouteConfig[]>(
   routes: T
