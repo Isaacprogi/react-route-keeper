@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  Suspense,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useState, useEffect, Suspense, useCallback } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import type { RouteConfig, RouteGuardProps, RedirectTo } from "../utils/type";
 import { LoadingScreen } from "./LoadingScreen";
@@ -12,12 +6,11 @@ import { LandingFallback } from "./LandingFallback";
 import { Unauthorized } from "./UnAuthorized";
 import { NotFound } from "./NotFound";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { devWarn, getFullPath, isLazyElement } from "../utils/functions";
+import { devWarn, getFullPath, isLazyElement, validateRouteConfigWithErrorBoundary } from "../utils/functions";
 import { LauncherButton } from "./LuncherButton";
 import { TrackableElement } from "./TrackableElement";
 import type { RouteTiming } from "../utils/type";
-import { validateRouteConfig } from "../utils/functions";
-import { RouteKeeperProvider } from "./context/RouteKeeperContext";
+import { RouteKeeperContext } from "./context/RouteKeeperContext";
 import { useRouteKeeper } from "./context/RouteKeeperContext";
 
 if (import.meta.env.NODE_ENV === "development")
@@ -41,13 +34,11 @@ export const RK: React.FC<RouteGuardProps> = ({
   setRemoveErrorBoundary,
   onRouteChange,
   onRedirect,
-  visualizer
 }) => {
   const auth = typeof isAuth === "string" ? Boolean(isAuth) : isAuth;
-  const routes = useMemo(() => initialRoutes, [initialRoutes]);
-  const { setTimingRecords, setIssues,testingMode } = useRouteKeeper();
+  const [routes, _] = useState<RouteConfig[]>(initialRoutes);
   const location = useLocation();
-
+  const { setTimingRecords, setIssues } = useRouteKeeper();
 
   useEffect(() => {
     setRemoveErrorBoundary?.(disableErrorBoundary);
@@ -70,6 +61,7 @@ export const RK: React.FC<RouteGuardProps> = ({
           reason: state?.__rkReason,
         },
       };
+      console.log(enrichedTiming);
       setTimingRecords((prev) => [enrichedTiming, ...prev]);
     },
     [location.pathname]
@@ -102,9 +94,9 @@ export const RK: React.FC<RouteGuardProps> = ({
         }
 
         collectedIssues.push(
-          ...validateRouteConfig({
+          ...validateRouteConfigWithErrorBoundary({
             ...route,
-            parentKey,
+            disableErrorBoundary
           })
         );
 
@@ -135,8 +127,10 @@ export const RK: React.FC<RouteGuardProps> = ({
       : "/";
 
   if (!safePublicRedirect) {
+    const message = `publicRedirect must be a non-empty string. Received "${publicRedirect}".`;
+    setIssues((prev) => [...prev, message]);
     devWarn({
-      message: `publicRedirect must be a non-empty string. Received "${publicRedirect}".`,
+      message,
       disableErrorBoundary,
     });
   }
@@ -159,8 +153,6 @@ export const RK: React.FC<RouteGuardProps> = ({
     if (search) to.search = search.startsWith("?") ? search : `?${search}`;
     if (hash) to.hash = hash.startsWith("#") ? hash : `#${hash}`;
     if (state !== undefined) to.state = state;
-
-    onRedirect?.(location.pathname, pathname);
 
     return (
       <Navigate
@@ -186,7 +178,6 @@ export const RK: React.FC<RouteGuardProps> = ({
     inheritedType?: "private" | "public" | "neutral",
     parentRoles: string[] = []
   ): (React.ReactElement | null)[] => {
-
     return routesArray.map(
       ({
         path,
@@ -209,7 +200,6 @@ export const RK: React.FC<RouteGuardProps> = ({
 
             return (
               <TrackableElement
-                enabled={Boolean(visualizer?.enabled && testingMode)}
                 key={fullPath}
                 path={fullPath}
                 onMounted={onRouteRendered}
@@ -221,7 +211,9 @@ export const RK: React.FC<RouteGuardProps> = ({
         };
 
         const isLazy = isLazyElement(element);
-
+        if (isLazy) {
+          console.log(path, "sjsjj");
+        }
         const routeType = type || inheritedType || "public";
 
         const effectiveRoles =
@@ -295,7 +287,6 @@ export const RK: React.FC<RouteGuardProps> = ({
               {...rest}
             />
           );
-
         if (children && children.length > 0)
           return (
             <Route
@@ -307,7 +298,6 @@ export const RK: React.FC<RouteGuardProps> = ({
               {childRoutes}
             </Route>
           );
-
         return (
           <Route
             key={parentKey + path}
@@ -322,6 +312,17 @@ export const RK: React.FC<RouteGuardProps> = ({
 
   return (
     <>
+      {/* {visualizer?.render &&  (
+        <LauncherButton
+          timingRecords={timingRecords}
+          setTimingRecords={setTimingRecords}
+          issues={issues}
+          setIssues={setIssues}
+          testingMode={testingMode}
+          toggleTestingMode={toggleTestingMode}
+          plugEditor={visualizer.render}
+        />
+      )} */}
       <Routes>
         {renderRoutes(routes)}
         <Route path="*" element={notFound} />
@@ -332,19 +333,38 @@ export const RK: React.FC<RouteGuardProps> = ({
 
 export const RouteKeeper: React.FC<RouteGuardProps> = (props) => {
   const [removeErrorBoundary, setRemoveErrorBoundary] = useState(false);
- 
+  const [issues, setIssues] = useState<string[]>([]);
+  const [timingRecords, setTimingRecords] = useState<RouteTiming[]>([]);
+  const [testingMode, setTestingMode] = useState(false);
+
+  const toggleTestingMode = () => setTestingMode(!testingMode);
 
   return (
-    <RouteKeeperProvider
+    <RouteKeeperContext.Provider
+      value={{
+        timingRecords,
+        setTimingRecords,
+        issues,
+        setIssues,
+        testingMode,
+        toggleTestingMode,
+      }}
     >
       <>
-       
-        {props.visualizer?.enabled && props.visualizer.render && import.meta.env.DEV && (
+        {/* 🧠 ALWAYS ALIVE */}
+        {props.visualizer?.enabled && props.visualizer.render && (
           <LauncherButton
+            timingRecords={timingRecords}
+            setTimingRecords={setTimingRecords}
+            issues={issues}
+            setIssues={setIssues}
             plugEditor={props.visualizer.render}
+            testingMode={testingMode}
+            toggleTestingMode={toggleTestingMode}
           />
         )}
 
+        {/* 💣 RISK ZONE */}
         {removeErrorBoundary ? (
           <RK {...props} setRemoveErrorBoundary={setRemoveErrorBoundary} />
         ) : (
@@ -353,6 +373,6 @@ export const RouteKeeper: React.FC<RouteGuardProps> = (props) => {
           </ErrorBoundary>
         )}
       </>
-    </RouteKeeperProvider>
+    </RouteKeeperContext.Provider>
   );
 };

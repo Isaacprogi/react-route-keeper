@@ -142,16 +142,20 @@ export interface TrackableElementProps {
 }
 
 export type devWarnProps = {
-  message: string
-  disableErrorBoundary: boolean;
-}
+  message: string;
+  disableErrorBoundary?: boolean;
+};
 
-export type ValidateRouteParams = {
+
+export interface ValidateRouteParams {
   path?: string;
-  type?: "private" | "public" | "neutral";
-  redirectTo?: RedirectTo;
-  children?: RouteConfig[];
   element?: React.ReactNode;
-  parentKey?: string;
-  index?: boolean
+  parentKey:string;
+  redirectTo?: {
+    pathname: string;
+  };
+  index?: boolean;
+  type?: string;
+  children?: ValidateRouteParams[];
+  disableErrorBoundary?: boolean;
 };
