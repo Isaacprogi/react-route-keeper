@@ -147,15 +147,13 @@ export type devWarnProps = {
 };
 
 
+
 export interface ValidateRouteParams {
   path?: string;
   element?: React.ReactNode;
-  parentKey:string;
-  redirectTo?: {
-    pathname: string;
-  };
+  redirectTo?: RedirectTo;
   index?: boolean;
   type?: string;
   children?: ValidateRouteParams[];
   disableErrorBoundary?: boolean;
-};
+}

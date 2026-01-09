@@ -34,15 +34,19 @@ export const RK: React.FC<RouteGuardProps> = ({
   setRemoveErrorBoundary,
   onRouteChange,
   onRedirect,
+  visualizer
 }) => {
   const auth = typeof isAuth === "string" ? Boolean(isAuth) : isAuth;
   const [routes, _] = useState<RouteConfig[]>(initialRoutes);
   const location = useLocation();
   const { setTimingRecords, setIssues } = useRouteKeeper();
+  const enabled = visualizer?.enabled && visualizer.render
 
   useEffect(() => {
     setRemoveErrorBoundary?.(disableErrorBoundary);
   }, [disableErrorBoundary]);
+
+  console.log(disableErrorBoundary,"yeah disable")
 
   useEffect(() => {
     onRouteChange?.(location.pathname);
@@ -78,7 +82,7 @@ export const RK: React.FC<RouteGuardProps> = ({
         if (route.index) {
           if (indexUsed) {
             collectedIssues.push(
-              `Duplicate index route at parentKey="${parentKey}".`
+              `Duplicate index route at parentKey="${parentKey === ''?'/':parentKey}".`
             );
           }
           indexUsed = true;
@@ -87,7 +91,7 @@ export const RK: React.FC<RouteGuardProps> = ({
         if (route.path) {
           if (usedPaths.has(route.path)) {
             collectedIssues.push(
-              `Duplicate path "${route.path}" at parentKey="${parentKey}".`
+              `Duplicate path "${route.path}" at parentKey="${parentKey === ''?'/':parentKey}".`
             );
           }
           usedPaths.add(route.path);
@@ -154,6 +158,8 @@ export const RK: React.FC<RouteGuardProps> = ({
     if (hash) to.hash = hash.startsWith("#") ? hash : `#${hash}`;
     if (state !== undefined) to.state = state;
 
+    onRedirect?.(location.pathname,pathname)
+
     return (
       <Navigate
         to={to}
@@ -200,6 +206,7 @@ export const RK: React.FC<RouteGuardProps> = ({
 
             return (
               <TrackableElement
+                enabled={Boolean(enabled)}
                 key={fullPath}
                 path={fullPath}
                 onMounted={onRouteRendered}
@@ -211,9 +218,7 @@ export const RK: React.FC<RouteGuardProps> = ({
         };
 
         const isLazy = isLazyElement(element);
-        if (isLazy) {
-          console.log(path, "sjsjj");
-        }
+       
         const routeType = type || inheritedType || "public";
 
         const effectiveRoles =
@@ -312,17 +317,6 @@ export const RK: React.FC<RouteGuardProps> = ({
 
   return (
     <>
-      {/* {visualizer?.render &&  (
-        <LauncherButton
-          timingRecords={timingRecords}
-          setTimingRecords={setTimingRecords}
-          issues={issues}
-          setIssues={setIssues}
-          testingMode={testingMode}
-          toggleTestingMode={toggleTestingMode}
-          plugEditor={visualizer.render}
-        />
-      )} */}
       <Routes>
         {renderRoutes(routes)}
         <Route path="*" element={notFound} />
@@ -335,9 +329,19 @@ export const RouteKeeper: React.FC<RouteGuardProps> = (props) => {
   const [removeErrorBoundary, setRemoveErrorBoundary] = useState(false);
   const [issues, setIssues] = useState<string[]>([]);
   const [timingRecords, setTimingRecords] = useState<RouteTiming[]>([]);
-  const [testingMode, setTestingMode] = useState(false);
+  
+   const [testingMode, setTestingMode] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("__rk_testing_mode__") === "true";
+  });
 
-  const toggleTestingMode = () => setTestingMode(!testingMode);
+  useEffect(() => {
+    localStorage.setItem("__rk_testing_mode__", String(testingMode));
+  }, [testingMode]);
+
+  const toggleTestingMode = () => {
+    setTestingMode((prev) => !prev);
+  };
 
   return (
     <RouteKeeperContext.Provider
@@ -351,7 +355,6 @@ export const RouteKeeper: React.FC<RouteGuardProps> = (props) => {
       }}
     >
       <>
-        {/* 🧠 ALWAYS ALIVE */}
         {props.visualizer?.enabled && props.visualizer.render && (
           <LauncherButton
             timingRecords={timingRecords}
@@ -364,7 +367,6 @@ export const RouteKeeper: React.FC<RouteGuardProps> = (props) => {
           />
         )}
 
-        {/* 💣 RISK ZONE */}
         {removeErrorBoundary ? (
           <RK {...props} setRemoveErrorBoundary={setRemoveErrorBoundary} />
         ) : (

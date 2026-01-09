@@ -37,8 +37,8 @@ export const getFullPath = ({ path, index }: { path: string | undefined, index: 
 };
 
 
-
 export function devWarn({ message, disableErrorBoundary }: devWarnProps) {
+  console.log("called")
   if (import.meta.env.NODE_ENV === "development") {
     console.warn(message);
     if (disableErrorBoundary === false) {
@@ -59,7 +59,7 @@ export function validateRouteConfig(
       `Route at path="${params.path}" cannot have both "element" and "redirectTo".`
     );
   }
-
+  
   if (!params.element && !params.redirectTo) {
     issues.push(
       `Route at path="${params.path}" must provide at least an "element" or "redirectTo".`
@@ -95,14 +95,14 @@ export function validateRouteConfig(
       `Root "/" does not need a type. It is handled differently. Please refer docs`
     );
   }
-
+  
   if (params.path && params.redirectTo?.pathname && params.path === params.redirectTo?.pathname) {
     issues.push(`redirectTo and path can't have the same route.`);
   }
 
   if (params.path === "" && (params.element || params.redirectTo?.pathname)) {
     issues.push(
-      `A route with an element or redirect must define a valid "path" at parentKey="${params.parentKey}".`,
+      `A route with an element or redirect must define a valid "path".`
     );
   }
 
@@ -111,15 +111,18 @@ export function validateRouteConfig(
 
 export function validateRouteConfigWithErrorBoundary(
   params: ValidateRouteParams
-): void {
+): string[] {
   const issues = validateRouteConfig(params);
-
-  if (issues.length > 0) {
+  console.log("kkakaka")
+  
     issues.forEach(issue => {
+      console.log('ok ooooo')
       devWarn({
         message: `[Route Validation] ${issue}`,
         disableErrorBoundary: params.disableErrorBoundary
       });
     });
-  }
+
+  
+  return issues;
 }

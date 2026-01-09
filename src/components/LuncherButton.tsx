@@ -7,13 +7,13 @@ type LauncherButtonProps = {
   plugEditor: () => React.ReactElement<RouteVisionProps>;
   editorWidth?: number;
   editorHeight?: number;
-   timingRecords: RouteTiming[];
-    setTimingRecords: React.Dispatch<React.SetStateAction<RouteTiming[]>>;
-    issues: string[]
-    setIssues: React.Dispatch<React.SetStateAction<string[]>>
-    testingMode:boolean;
-    toggleTestingMode:()=>void;
-  };
+  timingRecords: RouteTiming[];
+  setTimingRecords: React.Dispatch<React.SetStateAction<RouteTiming[]>>;
+  issues: string[];
+  setIssues: React.Dispatch<React.SetStateAction<string[]>>;
+  testingMode: boolean;
+  toggleTestingMode: () => void;
+};
 
 const STORAGE_OPEN = "rk:editor:open";
 const STORAGE_POS = "rk:editor:pos";
@@ -23,11 +23,10 @@ export const LauncherButton: React.FC<LauncherButtonProps> = ({
   timingRecords,
   setTimingRecords,
   issues,
-  setIssues,testingMode,toggleTestingMode
+  setIssues,
+  testingMode,
+  toggleTestingMode,
 }) => {
-  const Editor = plugEditor?.();
-
-
   const getInitialOpen = () => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem(STORAGE_OPEN) === "true";
@@ -202,27 +201,27 @@ export const LauncherButton: React.FC<LauncherButtonProps> = ({
       />
 
       {/* Editor Overlay */}
-     {open && (
-  <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      zIndex: 1000,
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
-      backdropFilter: "blur(4px)",
-    }}
-  >
-    {plugEditor && React.cloneElement(plugEditor(), {
-      timingRecords,
-      setTimingRecords,
-      issues,
-      setIssues,
-      testingMode,
-      toggleTestingMode
-    })}
-  </div>
-)}
-
+      {open && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          {plugEditor &&
+            React.cloneElement(plugEditor(), {
+              timingRecords,
+              setTimingRecords,
+              issues,
+              setIssues,
+              testingMode,
+              toggleTestingMode,
+            })}
+        </div>
+      )}
 
       <style>{`
         @keyframes pulse {
