@@ -5,6 +5,9 @@ import { libInjectCss } from "vite-plugin-lib-inject-css";
 import path from "path";
 
 export default defineConfig({
+  define: {
+    __DEV__: JSON.stringify(process.env.NODE_ENV === "production"),
+  },
   plugins: [
     react({
       jsxRuntime: "classic",

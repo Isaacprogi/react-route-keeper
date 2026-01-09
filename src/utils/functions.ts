@@ -36,15 +36,15 @@ export const getFullPath = ({ path, index }: { path: string | undefined, index: 
 
 };
 
+// declare const __DEV__: boolean;
 
 export function devWarn({ message, disableErrorBoundary }: devWarnProps) {
-  if (import.meta.env.NODE_ENV === "development") {
     console.warn(message);
     if (disableErrorBoundary === false) {
       throw new Error(message);
     }
-  }
 }
+
 
 
 
@@ -113,6 +113,7 @@ export function validateRouteConfigWithErrorBoundary(
 ): string[] {
   const issues = validateRouteConfig(params);
     issues.forEach(issue => {
+      console.log("hello")
 
       devWarn({
         message: `[Route Validation] ${issue}`,

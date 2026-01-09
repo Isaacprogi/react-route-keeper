@@ -148,7 +148,8 @@ export const RK: React.FC<RouteGuardProps> = ({
   const handleRedirect = (
     redirectTo: RedirectTo,
     guard: string,
-    reason: string
+    reason: string,
+    triggerOnredirect = true
   ) => {
     const {
       pathname,
@@ -164,7 +165,9 @@ export const RK: React.FC<RouteGuardProps> = ({
     if (hash) to.hash = hash.startsWith("#") ? hash : `#${hash}`;
     if (state !== undefined) to.state = state;
 
-    onRedirect?.(location.pathname, pathname);
+    
+     onRedirect?.(location.pathname, pathname);
+    
 
     return (
       <Navigate
@@ -262,7 +265,8 @@ export const RK: React.FC<RouteGuardProps> = ({
                 ? handleRedirect(
                     { pathname: safePrivateRedirect, replace: true },
                     "RouteKeeper",
-                    "User not authenticated"
+                    "User not authenticated",
+                    false
                   )
                 : !hasRoleAccess
                 ? wrapWithTrackable(unAuthorized, fullPath!)
@@ -273,7 +277,8 @@ export const RK: React.FC<RouteGuardProps> = ({
                 ? handleRedirect(
                     { pathname: safePublicRedirect, replace: true },
                     "RouteKeeper",
-                    "User already authenticated"
+                    "User already authenticated",
+                    false
                   )
                 : wrappedElement;
               break;
