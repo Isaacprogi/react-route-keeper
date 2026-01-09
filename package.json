@@ -1,6 +1,6 @@
 {
   "name": "routekeeper-react",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "A React RouteGuard component for role-based and protected routing.",
   "author": "Isaac Anasonye",
   "license": "MIT",
