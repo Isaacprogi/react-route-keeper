@@ -18,7 +18,6 @@ import type { RouteTiming } from "../utils/type";
 import { RouteKeeperContext } from "./context/RouteKeeperContext";
 import { useRouteKeeper } from "./context/RouteKeeperContext";
 
-if (import.meta.env.NODE_ENV === "development")
   console.log(
     "%c🔥 RouteKeeper COMPONENT IS MOUNTED 🔥",
     "color: #00f2ff; background: #141417; font-size: 10px; font-weight: bold; padding: 6px 12px; border: 1px solid #26262b; border-left: 4px solid #00f2ff; border-radius: 4px; font-family: 'JetBrains Mono', monospace;"
