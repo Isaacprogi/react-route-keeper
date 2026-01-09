@@ -6,7 +6,12 @@ import { LandingFallback } from "./LandingFallback";
 import { Unauthorized } from "./UnAuthorized";
 import { NotFound } from "./NotFound";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { devWarn, getFullPath, isLazyElement, validateRouteConfigWithErrorBoundary } from "../utils/functions";
+import {
+  devWarn,
+  getFullPath,
+  isLazyElement,
+  validateRouteConfigWithErrorBoundary,
+} from "../utils/functions";
 import { LauncherButton } from "./LuncherButton";
 import { TrackableElement } from "./TrackableElement";
 import type { RouteTiming } from "../utils/type";
@@ -34,19 +39,17 @@ export const RK: React.FC<RouteGuardProps> = ({
   setRemoveErrorBoundary,
   onRouteChange,
   onRedirect,
-  visualizer
+  visualizer,
 }) => {
   const auth = typeof isAuth === "string" ? Boolean(isAuth) : isAuth;
   const [routes, _] = useState<RouteConfig[]>(initialRoutes);
   const location = useLocation();
   const { setTimingRecords, setIssues } = useRouteKeeper();
-  const enabled = visualizer?.enabled && visualizer.render
+  const enabled = visualizer?.enabled && visualizer.render;
 
   useEffect(() => {
     setRemoveErrorBoundary?.(disableErrorBoundary);
   }, [disableErrorBoundary]);
-
-  console.log(disableErrorBoundary,"yeah disable")
 
   useEffect(() => {
     onRouteChange?.(location.pathname);
@@ -65,7 +68,6 @@ export const RK: React.FC<RouteGuardProps> = ({
           reason: state?.__rkReason,
         },
       };
-      console.log(enrichedTiming);
       setTimingRecords((prev) => [enrichedTiming, ...prev]);
     },
     [location.pathname]
@@ -82,7 +84,9 @@ export const RK: React.FC<RouteGuardProps> = ({
         if (route.index) {
           if (indexUsed) {
             collectedIssues.push(
-              `Duplicate index route at parentKey="${parentKey === ''?'/':parentKey}".`
+              `Duplicate index route at parentKey="${
+                parentKey === "" ? "/" : parentKey
+              }".`
             );
           }
           indexUsed = true;
@@ -91,7 +95,9 @@ export const RK: React.FC<RouteGuardProps> = ({
         if (route.path) {
           if (usedPaths.has(route.path)) {
             collectedIssues.push(
-              `Duplicate path "${route.path}" at parentKey="${parentKey === ''?'/':parentKey}".`
+              `Duplicate path "${route.path}" at parentKey="${
+                parentKey === "" ? "/" : parentKey
+              }".`
             );
           }
           usedPaths.add(route.path);
@@ -100,7 +106,7 @@ export const RK: React.FC<RouteGuardProps> = ({
         collectedIssues.push(
           ...validateRouteConfigWithErrorBoundary({
             ...route,
-            disableErrorBoundary
+            disableErrorBoundary,
           })
         );
 
@@ -158,7 +164,7 @@ export const RK: React.FC<RouteGuardProps> = ({
     if (hash) to.hash = hash.startsWith("#") ? hash : `#${hash}`;
     if (state !== undefined) to.state = state;
 
-    onRedirect?.(location.pathname,pathname)
+    onRedirect?.(location.pathname, pathname);
 
     return (
       <Navigate
@@ -200,8 +206,8 @@ export const RK: React.FC<RouteGuardProps> = ({
 
         const wrapWithTrackable = (el: React.ReactNode, fullPath: string) => {
           {
-            if (location.pathname !== fullPath || index) {
-              return element;
+            if (location.pathname !== fullPath) {
+              return el;
             }
 
             return (
@@ -218,7 +224,7 @@ export const RK: React.FC<RouteGuardProps> = ({
         };
 
         const isLazy = isLazyElement(element);
-       
+
         const routeType = type || inheritedType || "public";
 
         const effectiveRoles =
@@ -288,7 +294,7 @@ export const RK: React.FC<RouteGuardProps> = ({
             <Route
               key={fullPath + "index"}
               index
-              element={wrapWithTrackable(element, parentKey || "index")}
+              element={routeElement}
               {...rest}
             />
           );
@@ -329,8 +335,8 @@ export const RouteKeeper: React.FC<RouteGuardProps> = (props) => {
   const [removeErrorBoundary, setRemoveErrorBoundary] = useState(false);
   const [issues, setIssues] = useState<string[]>([]);
   const [timingRecords, setTimingRecords] = useState<RouteTiming[]>([]);
-  
-   const [testingMode, setTestingMode] = useState<boolean>(() => {
+
+  const [testingMode, setTestingMode] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("__rk_testing_mode__") === "true";
   });
@@ -364,6 +370,7 @@ export const RouteKeeper: React.FC<RouteGuardProps> = (props) => {
             plugEditor={props.visualizer.render}
             testingMode={testingMode}
             toggleTestingMode={toggleTestingMode}
+            auth={Boolean(props?.auth)}
           />
         )}
 

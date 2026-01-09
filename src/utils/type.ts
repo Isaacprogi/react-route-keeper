@@ -77,6 +77,7 @@ export interface RouteVisionProps {
   setIssues: React.Dispatch<React.SetStateAction<string[]>>
   testingMode:boolean;
   toggleTestingMode:()=>void;
+  auth:boolean;
 };
 
 

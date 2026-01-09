@@ -13,6 +13,7 @@ type LauncherButtonProps = {
   setIssues: React.Dispatch<React.SetStateAction<string[]>>;
   testingMode: boolean;
   toggleTestingMode: () => void;
+  auth:boolean | boolean;
 };
 
 const STORAGE_OPEN = "rk:editor:open";
@@ -26,6 +27,7 @@ export const LauncherButton: React.FC<LauncherButtonProps> = ({
   setIssues,
   testingMode,
   toggleTestingMode,
+  auth
 }) => {
   const getInitialOpen = () => {
     if (typeof window === "undefined") return false;
@@ -219,6 +221,7 @@ export const LauncherButton: React.FC<LauncherButtonProps> = ({
               setIssues,
               testingMode,
               toggleTestingMode,
+              auth
             })}
         </div>
       )}
